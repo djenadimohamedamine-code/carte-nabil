@@ -25,10 +25,12 @@ dependencies:
 
   # Media dependencies
   image_picker: ^1.1.0
-  record: ^5.0.5
+  record: ^6.2.0
   audioplayers: ^5.2.1
   video_player: ^2.8.5
   permission_handler: ^11.3.1
+  url_launcher: ^6.2.6
+  file_picker: ^8.0.3
 
 dev_dependencies:
   flutter_test:

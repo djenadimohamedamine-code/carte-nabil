@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'chat_screen.dart';
 import 'scanner_screen.dart';
+import 'stadium_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +38,7 @@ class ClubApp extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
         ),
-        navigationBarTheme: NavigationBarThemeData(
+        navigationBarTheme: const NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: Color(0x33D32F2F), // Translucent red
         ),
@@ -57,7 +58,7 @@ class ClubApp extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
         ),
-        navigationBarTheme: NavigationBarThemeData(
+        navigationBarTheme: const NavigationBarThemeData(
           backgroundColor: Colors.black,
           indicatorColor: Color(0x33D32F2F),
         ),
@@ -80,6 +81,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const ChatScreen(),
+    const StadiumScreen(),
     const ScannerScreen(),
   ];
 
@@ -116,6 +118,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.chat_bubble_outline),
             selectedIcon: Icon(Icons.chat_bubble),
             label: 'Discussion',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.stadium_outlined),
+            selectedIcon: Icon(Icons.stadium),
+            label: 'Stade',
           ),
           NavigationDestination(
             icon: Icon(Icons.qr_code_scanner),
