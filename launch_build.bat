@@ -1,7 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Couleurs (si possible)
 echo.
 echo  [42m[ ASSIMA-10 : Lancement du Build ] [0m
 echo.
@@ -14,25 +13,29 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: 2. Preparation du commit
-echo [*] Marquage des fichiers...
-git add .
+:: 2. Detection de changements
+git status --short | findstr /R "^" >nul
+if %errorlevel% equ 0 (
+    echo [*] Changements detectes. Preparation du commit...
+    git add .
+    set "commit_msg=Build Trigger: %date% %time%"
+    git commit -m "!commit_msg!"
+) else (
+    echo [*] Aucun changement detecte. Envoi de l'etat actuel...
+)
 
-set "commit_msg=Build Trigger: %date% %time%"
-echo [*] Creation du commit : "!commit_msg!"
-git commit -m "!commit_msg!"
-
-:: 3. Push vers GitHub (Master et Main pour securite)
-echo [*] Synchronisation avec GitHub...
+:: 3. Push vers GitHub (Master et Main)
+echo [*] Synchronisation avec GitHub (Saisie de mot de passe possible)...
 echo.
-git push origin master:main --force
+:: On essaye de pousser la branche actuelle vers master et main
 git push origin master:master --force
+git push origin master:main --force
 echo.
 
 :: 4. Lien vers le monitoring
-echo [SUCCESS] Push termine ! GitHub Actions a recu l'ordre de build.
+echo [SUCCESS] Operation terminee ! 
 echo.
-echo [*] Ouverture de la page de monitoring...
+echo [*] Ouverture de la page de Actions...
 start https://github.com/djenadimohamedamine-code/carte-nabil/actions
 
 echo.
