@@ -32,11 +32,11 @@ jobs:
 
       - name: Fix Kotlin & R8 Versions
         run: |
-          # Inject R8 dependency inside the existing pluginManagement block
-          sed -i '/pluginManagement {/a \    buildscript { repositories { mavenCentral(); google() } dependencies { classpath("com.android.tools:r8:8.3.37") } }' android/settings.gradle
+          # Inject R8 dependency at the start of the root build.gradle
+          sed -i '1i buildscript { repositories { google(); mavenCentral() } dependencies { classpath "com.android.tools:r8:8.3.37" } }' android/build.gradle
           # Force Kotlin 1.9.24 in settings.gradle
           sed -i 's/version ".*" apply false/version "1.9.24" apply false/g' android/settings.gradle || true
-          # Force Kotlin 1.9.24 in app build.gradle if present
+          # Force Kotlin 1.9.24 in build.gradle if present
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.24"/g' android/build.gradle || true
 
       - name: Add Android Permissions

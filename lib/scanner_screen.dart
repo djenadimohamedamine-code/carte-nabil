@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -65,24 +66,69 @@ class _ScannerScreenState extends State<ScannerScreen> {
       
       String extracted = recognizedText.text;
       
-      // Simulate matching logic
+      // Real checking logic
       if (extracted.trim().isNotEmpty) {
-        setState(() {
-          _scanResult = "✓ Membre reconnu :\n\n$extracted";
-        });
+        await _verifyMember(extracted.trim());
       } else {
         setState(() {
           _scanResult = "❌ Aucun texte détecté. Rapprochez la carte.";
         });
       }
     } catch (e) {
-      setState(() {
-        _scanResult = "Erreur OCR : $e";
-      });
+      if (mounted) {
+        setState(() {
+          _scanResult = "Erreur OCR : $e";
+        });
+      }
     } finally {
-      setState(() {
-        _isScanning = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _verifyMember(String rawData) async {
+    try {
+      // Normalize rawData for searching (e.g. searching by ID or Name)
+      // Usually membership cards have a unique ID or a specific format.
+      // We search in the 'members' collection.
+      
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('members')
+          .where('cardId', isEqualTo: rawData)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final data = doc.data();
+        final String name = data['name'] ?? 'Supporter';
+        
+        // Update presence
+        await doc.reference.update({
+          'is_present': true,
+          'last_scanned': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          setState(() {
+            _scanResult = "✓ Membre reconnu :\n\nNOM : $name\nBIEVENU AU STADE !";
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _scanResult = "❌ Membre non trouvé dans la base.\nScan: $rawData";
+          });
+        }
+      }
+    } catch (e) {
+       if (mounted) {
+        setState(() {
+          _scanResult = "Erreur base de données : $e";
+        });
+      }
     }
   }
 
