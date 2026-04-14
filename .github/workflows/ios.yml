@@ -5,9 +5,6 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: macos-latest
@@ -15,8 +12,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -24,43 +19,60 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
 
-      - name: Verify or Repair iOS Project
-        run: |
-          if [ ! -d "ios" ] || [ ! -f "ios/Runner.xcodeproj/project.pbxproj" ]; then
-            echo "🛠️ iOS project missing or incomplete. Repairing..."
-            
-            # Suppression du dossier potentiellement corrompu
-            rm -rf ios
-            
-            # Régénération propre
-            flutter create --platforms=ios .
-            
-            # Configure Git
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            
-            # Commit & Push des fichiers de base
-            git add ios/
-            git commit -m "chore: Auto-repair missing iOS project files" || echo "No changes to commit"
-            git push origin HEAD:master || git push origin HEAD:main || echo "Push failed, but continuing build"
-          fi
-
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
           pod --version
 
-      - name: Install dependencies
+      - name: Prep Project & Build
         run: |
-          flutter clean
+          flutter config --no-analytics
+          # Restauration automatique si le dossier est manquant
+          if [ ! -d "ios" ]; then
+            echo "🛠️ ios/ dossier manquant. Restauration automatique..."
+            flutter create --project-name=carte_nabil --platforms=ios .
+          fi
           flutter pub get
 
-      - name: Install iOS pods
-        run: |
-          cd ios
-          pod repo update
-          pod install
-          cd ..
+          # Génération du Podfile (Fix Propre: String flags)
+          ruby -e 'File.write("ios/Podfile", <<~"PODFILE"
+            platform :ios, "13.0"
+            ENV["COCOAPODS_DISABLE_STATS"] = "true"
+            project "Runner", {
+              "Debug" => :debug,
+              "Profile" => :release,
+              "Release" => :release,
+            }
+            def flutter_root
+              generated_xcode_build_settings_path = File.expand_path(File.join("..", "Flutter", "Generated.xcconfig"), __FILE__)
+              File.foreach(generated_xcode_build_settings_path) do |line|
+                matches = line.match(/FLUTTER_ROOT=(.*)/)
+                return matches[1].strip if matches
+              end
+              raise "FLUTTER_ROOT not found"
+            end
+            require File.expand_path(File.join(flutter_root, "packages", "flutter_tools", "bin", "podhelper"))
+            flutter_ios_podfile_setup
+            target "Runner" do
+              use_frameworks!
+              use_modular_headers!
+              flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+            end
+            post_install do |installer|
+              installer.pods_project.targets.each do |target|
+                flutter_additional_ios_build_settings(target)
+                target.build_configurations.each do |config|
+                  config.build_settings["IPHONEOS_DEPLOYMENT_TARGET"] = "13.0"
+                  # ✅ FIX PROPRE: Strings uniquement
+                  config.build_settings["OTHER_CFLAGS"] = "$(inherited)"
+                  config.build_settings["OTHER_CPLUSPLUSFLAGS"] = "$(inherited)"
+                  config.build_settings["OTHER_LDFLAGS"] = "$(inherited)"
+                end
+              end
+            end
+          PODFILE
+          )'
+          cd ios && pod repo update && pod install && cd ..
 
       - name: Build iOS
         run: flutter build ios --release --no-codesign
