@@ -19,12 +19,18 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
 
-      - name: Prep Project & Build
+      - name: Restore Platforms & Prep Build
         run: |
+          # Regénère le dossier ios/ s'il manque (Rescue mode)
+          if [ ! -d "ios" ]; then
+            echo "⚠️ ios/ dossier manquant. Restauration..."
+            flutter create --platforms=ios .
+          fi
+
           flutter config --no-analytics
           flutter pub get
+
           # Definitive Podfile Generation (Fix Propre: String flags)
-          mkdir -p ios
           ruby -e 'File.write("ios/Podfile", <<~"PODFILE"
             platform :ios, "13.0"
             ENV["COCOAPODS_DISABLE_STATS"] = "true"
