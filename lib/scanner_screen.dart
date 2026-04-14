@@ -117,6 +117,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         final doc = querySnapshot.docs.first;
         final data = doc.data();
         final String name = data['name'] ?? 'Supporter';
+        final dynamic zone = data['zone'] ?? '?';
         
         // Update presence
         await doc.reference.update({
@@ -126,7 +127,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
         if (mounted) {
           setState(() {
-            _scanResult = "✓ Membre reconnu :\n\nNOM : $name\nBIEVENU AU STADE !";
+            _scanResult = "✓ Membre reconnu :\n\nNOM : $name\nZONE : $zone\nBIENVENU AU STADE !";
           });
         }
       } else {

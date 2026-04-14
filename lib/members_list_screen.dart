@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class MembersListScreen extends StatelessWidget {
+class MembersListScreen extends StatefulWidget {
   const MembersListScreen({super.key});
+
+  @override
+  State<MembersListScreen> createState() => _MembersListScreenState();
+}
+
+class _MembersListScreenState extends State<MembersListScreen> {
+  int _selectedZone = 14; // Default to Zone 14 as previously requested
+
 
   Future<void> _seedInitialMembers() async {
     final collection = FirebaseFirestore.instance.collection('members');
@@ -14,14 +22,22 @@ class MembersListScreen extends StatelessWidget {
         'cardId': 'ac001',
         'is_present': false,
         'matricule': 'ac001',
+        'zone': 14,
       });
       await collection.add({
         'name': 'Lafri Nabil',
         'cardId': 'ac010',
         'is_present': false,
         'matricule': 'ac010',
+        'zone': 14,
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _seedInitialMembers();
   }
 
   @override
@@ -33,21 +49,43 @@ class MembersListScreen extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           color: Colors.red.shade900,
-          child: const Text(
-            "MEMBRES ZONE 14",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "LISTE DES MEMBRES",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              DropdownButton<int>(
+                value: _selectedZone,
+                dropdownColor: Colors.black,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                underline: Container(height: 2, color: Colors.white),
+                items: List.generate(14, (index) => index + 1).map((int value) {
+                  return DropdownMenuItem<int>(
+                    value: value,
+                    child: Text("ZONE $value"),
+                  );
+                }).toList(),
+                onChanged: (int? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedZone = newValue;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('members').snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('members')
+                .where('zone', isEqualTo: _selectedZone)
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return const Center(child: Text("Erreur de chargement des données."));
