@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
+
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -16,7 +15,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   bool _isCameraInitialized = false;
   bool _isScanning = false;
+  bool _showSuccessOverlay = false;
   String _scanResult = "Placez la carte dans l'objectif et lancez l'analyse.";
+
   
   List<CameraDescription> _cameras = [];
   int _selectedCameraIndex = 0;
@@ -133,12 +134,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
           .where('cardId', isEqualTo: rawData)
           .get();
 
-      // If not found by ID, try searching by name within the text
+      // If not found by ID, try fuzzy searching by name
       if (querySnapshot.docs.isEmpty) {
         final allMembers = await FirebaseFirestore.instance.collection('members').get();
+        final normalizedRaw = rawData.toLowerCase();
+
         for (var doc in allMembers.docs) {
-          final name = (doc.data()['name'] ?? '').toString().toLowerCase();
-          if (rawData.toLowerCase().contains(name) || name.contains(rawData.toLowerCase())) {
+          final fullName = (doc.data()['name'] ?? '').toString().toLowerCase();
+          final nameParts = fullName.split(' ').where((s) => s.length > 2).toList();
+          
+          bool match = false;
+          // Check if the whole name is in the text
+          if (normalizedRaw.contains(fullName)) {
+            match = true;
+          } else {
+            // Check if all significant parts of the name are present in any order
+            int foundParts = 0;
+            for (var part in nameParts) {
+              if (normalizedRaw.contains(part)) foundParts++;
+            }
+            if (nameParts.isNotEmpty && foundParts >= nameParts.length) {
+              match = true;
+            }
+          }
+
+          if (match) {
             querySnapshot = await FirebaseFirestore.instance.collection('members').where(FieldPath.documentId, isEqualTo: doc.id).get();
             break;
           }
@@ -158,8 +178,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
         });
 
         if (mounted) {
+          HapticFeedback.heavyImpact(); // "Sonne vert" via vibration
           setState(() {
+            _showSuccessOverlay = true;
             _scanResult = "✓ Membre reconnu :\n\nNOM : $name\nZONE : $zone\nBIENVENU AU STADE !";
+          });
+          
+          // Hide overlay after 1 second
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) setState(() => _showSuccessOverlay = false);
           });
         }
       } else {
@@ -214,6 +241,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
             child: Stack(
               children: [
                 Positioned.fill(child: CameraPreview(_cameraController!)),
+                if (_showSuccessOverlay)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.green.withOpacity(0.4),
+                      child: const Center(
+                        child: Icon(Icons.check_circle, color: Colors.white, size: 100),
+                      ),
+                    ),
+                  ),
                 if (_cameras.length > 1)
                   Positioned(
                     top: 10,

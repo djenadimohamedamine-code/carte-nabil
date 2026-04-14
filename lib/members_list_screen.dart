@@ -12,32 +12,9 @@ class _MembersListScreenState extends State<MembersListScreen> {
   int _selectedZone = 14; // Default to Zone 14 as previously requested
 
 
-  Future<void> _seedInitialMembers() async {
-    final collection = FirebaseFirestore.instance.collection('members');
-    
-    // Seed Souheib
-    await collection.doc('ac001').set({
-      'name': 'Laroui Souheib',
-      'cardId': 'ac001',
-      'is_present': false,
-      'matricule': 'ac001',
-      'zone': 14,
-    }, SetOptions(merge: true));
-
-    // Seed Nabil
-    await collection.doc('ac010').set({
-      'name': 'Lafri Nabil',
-      'cardId': 'ac010',
-      'is_present': false,
-      'matricule': 'ac010',
-      'zone': 14,
-    }, SetOptions(merge: true));
-  }
-
   @override
   void initState() {
     super.initState();
-    _seedInitialMembers();
   }
 
   @override

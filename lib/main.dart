@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'scanner_screen.dart';
 import 'members_list_screen.dart';
+import 'data_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,6 +11,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Seed members at startup
+  await DataManager.seedInitialMembers();
   
   runApp(const ClubApp());
 }
