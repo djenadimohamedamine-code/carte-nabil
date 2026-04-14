@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'scanner_screen.dart';
 import 'members_list_screen.dart';
+import 'history_screen.dart';
 import 'data_manager.dart';
 
 void main() async {
@@ -85,6 +86,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const ScannerScreen(),
     const MembersListScreen(),
+    const HistoryScreen(),
   ];
 
   @override
@@ -125,6 +127,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'ZONE 14',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history),
+            label: 'Historique',
           ),
         ],
       ),

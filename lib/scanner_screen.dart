@@ -182,6 +182,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
           'last_scanned': FieldValue.serverTimestamp(),
         });
 
+        // Add to history
+        await FirebaseFirestore.instance.collection('scans_history').add({
+          'name': name,
+          'cardId': data['cardId'] ?? '?',
+          'zone': zone,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+
         if (mounted) {
           HapticFeedback.heavyImpact(); // "Sonne vert" via vibration
           setState(() {
