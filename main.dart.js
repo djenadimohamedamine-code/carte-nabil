@@ -23325,7 +23325,7 @@ n.toString
 s=2
 return A.E(l.a.fd(n,m),$async$Fa)
 case 2:m=q.hK("ac010")
-o=A.al(["name","Lafri Nabil","cardId","ac010","is_present",!1,"matricule","ac010","zone",14],p,o)
+o=A.al(["name","Lafri Nabil Riad","cardId","AC010","is_present",!1,"matricule","AC010","zone",14],p,o)
 p=A.apQ(!0)
 o=A.al_(o)
 o.toString
