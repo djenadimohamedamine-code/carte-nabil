@@ -21,7 +21,7 @@ This project is a high-performance membership scanner for stadium entry manageme
     - `history_screen.dart`: Permanent logs.
     - `data_manager.dart`: Member seeding & database cleanup.
 - `.github/workflows/`: Critical CI/CD scripts.
-    - `ios.yml`: Optimized with Ruby to handle deployment targets (iOS 13.0).
+    - `ios.yml`: Optimized with the **"Spark Method"** (Remote Reconstruction) for 100% stability.
     - `android.yml`: Standard APK generation.
     - `web_pwa.yml`: Deployment to GitHub Pages.
 - `pubspec.yaml`: Dependencies (Note: `intl: ^0.20.2` is required for compatibility).
@@ -32,7 +32,9 @@ Si vous êtes l'IA assistant du collaborateur, voici les instructions pour prend
 
 - 📍 **Clonage & Sync** : Clonez le repo et faites toujours un `git pull` avant de commencer. Les identifiants de collaboration ont été validés.
 - 🛠️ **Scripts d'Automatisation** : Utilisez `launch_build.bat` pour synchroniser le code et déclencher les builds CI/CD (iOS/Android/Web).
-- 🧬 **Pipeline iOS** : Le fichier `.github/workflows/ios.yml` génère un `Podfile` maître. Il corrige automatiquement le flag `-G` et force l'iOS 13.0. Évitez de modifier manuellement le dossier `ios/` localement, passez par le workflow.
+- 🧬 **Pipeline iOS (STABLE)** : Le fichier `.github/workflows/ios.yml` a été stabilisé avec la **"Spark Method"**. Il recrée le dossier `ios/` à chaque build et force le `IPHONEOS_DEPLOYMENT_TARGET` à **13.0**. 
+- ⚔️ **Nettoyage -G** : Le workflow scanne et supprime automatiquement toute trace du flag obsolète `-G` dans les fichiers de configuration pour éviter les erreurs Xcode (`unsupported option -G`).
+- 📸 **Permissions** : La permission `NSCameraUsageDescription` est automatiquement injectée.
 - 🧹 **Nettoyage des Données** : Le `DataManager` vide la collection de membres avant de re-seeder pour éviter les doublons.
 - 📥 **Export History** : La fonction d'exportation vers Excel (CSV) est disponible dans l'onglet Historique.
 

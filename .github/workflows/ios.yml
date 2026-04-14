@@ -23,6 +23,13 @@ jobs:
           flutter create --project-name=carte_nabil --platforms=ios .
           flutter pub get
 
+      - name: Fix Deployment Target & Remove -G
+        run: |
+          # Force iOS 13.0 partout
+          find ios -name "*.pbxproj" -exec sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/g' {} +
+          # Supprime le flag -G des fichiers de configuration
+          find ios -type f -exec sed -i '' 's/-G//g' {} + || true
+
       - name: Add Camera Permission
         run: |
           /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Scan cartes membres'" ios/Runner/Info.plist || true
