@@ -55,8 +55,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
       final camera = _cameras[_selectedCameraIndex];
       _cameraController = CameraController(
         camera,
-        ResolutionPreset.high,
+        ResolutionPreset.veryHigh, // Higher resolution for better OCR
         enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
       );
 
       await _cameraController!.initialize();
@@ -106,17 +107,20 @@ class _ScannerScreenState extends State<ScannerScreen> {
       
       if (extracted.trim().isNotEmpty) {
         // Find potential card IDs in the text (Word with letters and numbers)
-        final words = extracted.split(RegExp(r'\s+'));
+        final words = extracted.split(RegExp(r'[\s\n]+'));
         String? likelyId;
+        
+        // Strategy 1: Look for alphanumeric strings of length 3-8
         for (var word in words) {
           final cleanWord = word.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
-          if (cleanWord.length >= 4 && cleanWord.contains(RegExp(r'[0-9]'))) {
+          if (cleanWord.length >= 3 && cleanWord.length <= 8 && cleanWord.contains(RegExp(r'[0-9]'))) {
             likelyId = cleanWord;
             break;
           }
         }
 
-        await _verifyMember(likelyId ?? extracted.trim());
+        // Strategy 2: If no ID found, try searching the whole text for matches in the database
+        await _verifyMember(likelyId ?? extracted.trim(), fullText: extracted);
       } else {
         setState(() {
           _scanResult = "❌ Aucun texte détecté. Rapprochez la carte.";
@@ -167,7 +171,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  Future<void> _verifyMember(String rawData) async {
+  Future<void> _verifyMember(String rawData, {String? fullText}) async {
     try {
       // Normalize rawData for searching
       final String searchId = rawData.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
@@ -259,7 +263,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         if (mounted) {
           setState(() {
             _showErrorOverlay = true;
-            _scanResult = "❌ Membre non trouvé.\nID: $searchId";
+            _scanResult = "❌ Membre non trouvé.\nID extrait : $searchId\n\n${fullText != null ? "Texte détecté : ${fullText.length > 50 ? fullText.substring(0, 50) + "..." : fullText}" : ""}";
           });
           
           Future.delayed(const Duration(seconds: 2), () {
@@ -392,7 +396,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         fontWeight: FontWeight.bold,
                         color: _scanResult.contains("✓") 
                             ? Colors.green 
-                            : (_scanResult.contains("❌") ? Colors.red : Colors.black87),
+                            : (_scanResult.contains("❌") ? Colors.red : Theme.of(context).colorScheme.onSurface),
                       ),
                     ),
                   ),

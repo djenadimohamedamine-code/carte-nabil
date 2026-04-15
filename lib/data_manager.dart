@@ -4,13 +4,14 @@ class DataManager {
   static Future<void> seedInitialMembers() async {
     final collection = FirebaseFirestore.instance.collection('members');
     
-    // 1. Full clean up of the members collection to avoid duplicates
+    // 1. Check if we already have members to avoid wiping data every time
     final snapshot = await collection.get();
-    final cleanupBatch = FirebaseFirestore.instance.batch();
-    for (var doc in snapshot.docs) {
-      cleanupBatch.delete(doc.reference);
+    if (snapshot.docs.isNotEmpty) {
+      print("La base de données contient déjà des membres. Pas de réinitialisation.");
+      return;
     }
-    await cleanupBatch.commit();
+    
+    print("Initialisation de la base de données (première fois)...");
 
     // 2. Sample data across different zones
     final List<Map<String, dynamic>> initialData = [

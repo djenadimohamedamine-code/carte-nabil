@@ -134,9 +134,9 @@ class _MembersListScreenState extends State<MembersListScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatItem("MEMBRES", totalMembers.toString(), Colors.blue),
-                        _buildStatItem("ENTRÉS", presentCount.toString(), Colors.green),
-                        _buildStatItem("RESTANT", absentCount.toString(), Colors.redAccent),
+                        _buildStatItem(context, "MEMBRES", totalMembers.toString(), Colors.blue),
+                        _buildStatItem(context, "ENTRÉS", presentCount.toString(), Colors.green),
+                        _buildStatItem(context, "RESTANT", absentCount.toString(), Colors.redAccent),
                       ],
                     ),
                   ),
@@ -172,10 +172,17 @@ class _MembersListScreenState extends State<MembersListScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: isPresent ? Colors.black : Colors.black54,
+                                color: isPresent 
+                                    ? Theme.of(context).colorScheme.primary 
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
-                            subtitle: Text("ID: $cardId"),
+                            subtitle: Text(
+                              "ID: $cardId",
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
@@ -205,7 +212,7 @@ class _MembersListScreenState extends State<MembersListScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color color) {
+  Widget _buildStatItem(BuildContext context, String label, String value, Color color) {
     return Column(
       children: [
         Text(
@@ -214,7 +221,11 @@ class _MembersListScreenState extends State<MembersListScreen> {
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
+          style: TextStyle(
+            fontSize: 10, 
+            fontWeight: FontWeight.bold, 
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          ),
         ),
       ],
     );
