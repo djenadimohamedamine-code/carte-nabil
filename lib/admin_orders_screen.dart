@@ -33,7 +33,7 @@ class AdminOrdersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3, // 3 tabs now
       child: Column(
         children: [
           Container(
@@ -45,15 +45,17 @@ class AdminOrdersScreen extends StatelessWidget {
                     indicatorColor: Colors.white,
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white70,
+                    labelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     tabs: [
-                      Tab(icon: Icon(Icons.pie_chart), text: "PAR TAILLE"),
-                      Tab(icon: Icon(Icons.map), text: "PAR ZONE"),
+                      Tab(icon: Icon(Icons.list_alt), text: "DÉTAILS"),
+                      Tab(icon: Icon(Icons.pie_chart), text: "TAILLES"),
+                      Tab(icon: Icon(Icons.map), text: "ZONES"),
                     ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_forever, color: Colors.white),
-                  tooltip: "Réinitialiser les commandes",
+                  tooltip: "Vider les commandes",
                   onPressed: () => _clearOrders(context),
                 ),
               ],
@@ -61,7 +63,7 @@ class AdminOrdersScreen extends StatelessWidget {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+              stream: FirebaseFirestore.instance.collection('orders').orderBy('timestamp', descending: true).snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) return const Center(child: Text("Erreur."));
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
@@ -69,11 +71,21 @@ class AdminOrdersScreen extends StatelessWidget {
                 final orders = snapshot.data!.docs;
 
                 if (orders.isEmpty) {
-                  return const Center(child: Text("Aucune commande enregistrée."));
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.shopping_basket_outlined, size: 80, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text("Aucune commande pour le moment.", style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
                 }
 
                 return TabBarView(
                   children: [
+                    _buildOrdersList(orders),
                     _buildStatsBySize(orders),
                     _buildStatsByZone(orders),
                   ],
@@ -86,10 +98,35 @@ class AdminOrdersScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildOrdersList(List<QueryDocumentSnapshot> orders) {
+    return ListView.builder(
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        final data = orders[index].data() as Map<String, dynamic>;
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListTile(
+            leading: const CircleAvatar(backgroundColor: Colors.black, child: Icon(Icons.person, color: Colors.white)),
+            title: Text(data['memberName'] ?? 'Inconnu', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("ID: ${data['memberId']} • Zone ${data['zone']}"),
+            trailing: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+              child: Text(
+                data['size'] ?? '?',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildStatsBySize(List<QueryDocumentSnapshot> orders) {
     Map<String, int> stats = {};
     for (var doc in orders) {
-      final size = doc['size'] as String;
+      final size = (doc.data() as Map<String, dynamic>)['size'] ?? 'Unknown';
       stats[size] = (stats[size] ?? 0) + 1;
     }
 
@@ -99,40 +136,20 @@ class AdminOrdersScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Text(
-            "RÉCAPITULATIF DES TAILLES",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-            textAlign: TextAlign.center,
-          ),
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Text("TOTAL PAR TAILLE", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         ),
         ...sortedSizes.map((size) {
           final count = stats[size] ?? 0;
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 12),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.black12)),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: count > 0 ? Colors.red : Colors.grey[200],
-                child: Text(size, style: TextStyle(color: count > 0 ? Colors.white : Colors.black54)),
-              ),
               title: Text("Taille $size", style: const TextStyle(fontWeight: FontWeight.bold)),
-              trailing: Text(
-                "$count Commandes",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.blue),
-              ),
+              trailing: Text("$count", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.red)),
             ),
           );
         }),
-        const Divider(height: 40),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            "TOTAL : ${orders.length} MAILLOTS",
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-            textAlign: TextAlign.center,
-          ),
-        ),
       ],
     );
   }
@@ -140,7 +157,8 @@ class AdminOrdersScreen extends StatelessWidget {
   Widget _buildStatsByZone(List<QueryDocumentSnapshot> orders) {
     Map<int, int> stats = {};
     for (var doc in orders) {
-      final zone = doc['zone'] as int;
+      final data = doc.data() as Map<String, dynamic>;
+      final zone = data['zone'] ?? 0;
       stats[zone] = (stats[zone] ?? 0) + 1;
     }
 
@@ -150,25 +168,15 @@ class AdminOrdersScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Text(
-            "RÉPARTITION PAR ZONE",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-            textAlign: TextAlign.center,
-          ),
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Text("TOTAL PAR ZONE", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         ),
         ...sortedZones.map((zone) {
           final count = stats[zone] ?? 0;
-          return ListTile(
-            leading: const Icon(Icons.location_on, color: Colors.red),
-            title: Text("ZONE $zone", style: const TextStyle(fontWeight: FontWeight.bold)),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-              child: Text(
-                "$count",
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+          return Card(
+            child: ListTile(
+              title: Text("ZONE $zone"),
+              trailing: Text("$count commandes", style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           );
         }),

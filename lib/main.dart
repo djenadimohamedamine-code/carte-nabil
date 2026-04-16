@@ -156,9 +156,9 @@ class _MainScreenState extends State<MainScreen> {
             label: 'BOUTIQUE',
           ),
           NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'RECAP', // Changed to Recap to avoid confusion with Boutique
+            icon: Icon(Icons.shopping_cart_checkout_outlined),
+            selectedIcon: Icon(Icons.shopping_cart_checkout),
+            label: 'COMMANDE', 
           ),
           NavigationDestination(
             icon: Icon(Icons.history_outlined),
