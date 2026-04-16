@@ -104,50 +104,83 @@ class AdminOrdersScreen extends StatelessWidget {
   }
 
   Widget _buildKeychainOrders(List<QueryDocumentSnapshot> orders) {
+    int totalPcs = 0;
     // Group by member to sum quantities
     Map<String, Map<String, dynamic>> memberStats = {};
     for (var doc in orders) {
       final data = doc.data() as Map<String, dynamic>;
       final mId = data['memberId'];
+      final q = data['quantity'] ?? 1;
+      totalPcs += (q as int);
+      
       if (!memberStats.containsKey(mId)) {
         memberStats[mId] = {
           'name': data['memberName'],
           'qty': 0,
           'zone': data['zone'],
-          'docId': doc.id, // For single delete if needed
+          'docId': doc.id,
         };
       }
-      memberStats[mId]!['qty'] += data['quantity'] ?? 1;
+      memberStats[mId]!['qty'] += q;
     }
 
     final members = memberStats.values.toList();
 
-    return ListView.builder(
-      itemCount: members.length,
-      itemBuilder: (context, index) {
-        final m = members[index];
-        final mId = memberStats.keys.elementAt(index);
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: ListTile(
-            leading: const CircleAvatar(backgroundColor: Colors.red, child: Icon(Icons.vpn_key, color: Colors.white, size: 16)),
-            title: Text(m['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("ID: $mId • Zone ${m['zone']}"),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(15)),
-              child: Text("${m['qty']} PCS", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-            ),
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: Colors.amber.shade100,
+          child: Text(
+            "TOTAL PORTE-CLÉS : $totalPcs PIÈCES",
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.black, fontSize: 18, color: Colors.black),
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: members.length,
+            itemBuilder: (context, index) {
+              final m = members[index];
+              final mId = memberStats.keys.elementAt(index);
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  leading: const CircleAvatar(backgroundColor: Colors.amber, child: Icon(Icons.vpn_key, color: Colors.black, size: 16)),
+                  title: Text(m['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("ID: $mId • Zone ${m['zone']}"),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(15)),
+                    child: Text("${m['qty']} PCS", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildOrdersList(List<QueryDocumentSnapshot> orders) {
-    return ListView.builder(
-      itemCount: orders.length,
-      itemBuilder: (context, index) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: Colors.red.shade50,
+          child: Text(
+            "TOTAL MAILLOTS : ${orders.length}",
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.black, fontSize: 18, color: Colors.red),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
         final doc = orders[index];
         final data = doc.data() as Map<String, dynamic>;
         return Card(
@@ -192,6 +225,10 @@ class AdminOrdersScreen extends StatelessWidget {
           ),
         );
       },
+            ),
+          ),
+        ),
+      ],
     );
   }
 

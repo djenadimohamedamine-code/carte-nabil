@@ -5,8 +5,9 @@ class DataManager {
     final collection = FirebaseFirestore.instance.collection('members');
     
     print("Synchronisation des membres avec la base de données...");
-
-    // 2. Sample data (Added members for testing)
+    
+    // Suppression de l'ancien ID incorrect s'il existe
+    await collection.doc('LS001').delete();
     final List<Map<String, dynamic>> initialData = [
       {
         'cardId': 'AC001',
