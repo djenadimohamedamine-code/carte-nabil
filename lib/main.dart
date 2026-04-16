@@ -5,6 +5,7 @@ import 'scanner_screen.dart';
 import 'members_list_screen.dart';
 import 'history_screen.dart';
 import 'data_manager.dart';
+import 'order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,6 +89,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const ScannerScreen(),
     const MembersListScreen(),
+    const OrderScreen(),
     const HistoryScreen(),
   ];
 
@@ -146,6 +148,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'ZONES',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_bag_outlined),
+            selectedIcon: Icon(Icons.shopping_bag),
+            label: 'BOUTIQUE',
           ),
           NavigationDestination(
             icon: Icon(Icons.history_outlined),
