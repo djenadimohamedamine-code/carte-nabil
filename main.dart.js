@@ -28137,7 +28137,7 @@ s=1
 break}A.JQ("Initialisation de la base de donn\xe9es (premi\xe8re fois)...")
 p=t.N
 n=t.z
-m=[A.ag(["cardId","LS001","name","Laroui Souheib","is_present",!1,"matricule","LS001","zone",14],p,n),A.ag(["cardId","ID001","name","Test User ID001","is_present",!1,"matricule","ID001","zone",14],p,n),A.ag(["cardId","AC010","name","Lafri Nabil Riad","is_present",!1,"matricule","AC010","zone",14],p,n)]
+m=[A.ag(["cardId","AC001","name","Laroui Souheib","is_present",!1,"matricule","AC001","zone",14],p,n),A.ag(["cardId","ID001","name","Test User ID001","is_present",!1,"matricule","ID001","zone",14],p,n),A.ag(["cardId","AC010","name","Lafri Nabil Riad","is_present",!1,"matricule","AC010","zone",14],p,n)]
 l=$.b8
 e=(l==null?$.b8=$.cG():l).cX("[DEFAULT]")
 A.by(e,f,!0)
