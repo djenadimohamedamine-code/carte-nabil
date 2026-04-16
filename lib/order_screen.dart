@@ -208,7 +208,9 @@ class _OrderScreenState extends State<OrderScreen> {
             padding: const EdgeInsets.all(8.0),
             child: AspectRatio(
               aspectRatio: 1,
-              child: Image.asset('assets/images/$imageName', fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag, size: 40)),
+              child: imageName == 'maillot.png' 
+                ? const Icon(Icons.checkroom, size: 60, color: Colors.grey)
+                : Image.asset('assets/images/$imageName', fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag, size: 40)),
             ),
           ),
           Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
