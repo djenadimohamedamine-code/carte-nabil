@@ -28137,12 +28137,12 @@ s=1
 break}A.JR("Initialisation de la base de donn\xe9es (premi\xe8re fois)...")
 p=t.N
 n=t.z
-m=[A.ag(["cardId","ID001","name","Test User ID001","is_present",!1,"matricule","ID001","zone",14],p,n),A.ag(["cardId","AC010","name","Lafri Nabil Riad","is_present",!1,"matricule","AC010","zone",14],p,n)]
+m=[A.ag(["cardId","LS001","name","Laroui Souheib","is_present",!1,"matricule","LS001","zone",14],p,n),A.ag(["cardId","ID001","name","Test User ID001","is_present",!1,"matricule","ID001","zone",14],p,n),A.ag(["cardId","AC010","name","Lafri Nabil Riad","is_present",!1,"matricule","AC010","zone",14],p,n)]
 l=$.b8
 e=(l==null?$.b8=$.cG():l).cX("[DEFAULT]")
 A.by(e,f,!0)
 f=A.et(new A.c7(e))
-for(f=A.alX(f,f.gcI().uJ()).b,l=t.a,k=t.f7,j=0;j<2;++j){i=m[j]
+for(f=A.alX(f,f.gcI().uJ()).b,l=t.a,k=t.f7,j=0;j<3;++j){i=m[j]
 h=i.h(0,"cardId")
 h=k.a(o.b).eU(h)
 A.by(h,$.a0H(),!0)
@@ -28155,7 +28155,7 @@ g=A.anV(g)
 g.toString
 f.Mq(h,g,null)}s=4
 return A.y(f.kz(),$async$LJ)
-case 4:A.JR("Base de donn\xe9es initialis\xe9e avec 2 membres de test.")
+case 4:A.JR("Base de donn\xe9es initialis\xe9e avec 3 membres de test.")
 case 1:return A.G(q,r)}})
 return A.H($async$LJ,r)},
 aP8(){return B.HW},
