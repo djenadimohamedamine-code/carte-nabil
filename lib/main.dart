@@ -128,33 +128,37 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80), // Larger AppBar
-        child: AppBar(
-          centerTitle: true,
-          flexibleSpace: Container(
-            color: Colors.black,
-            child: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.asset(
-                    'assets/images/IMG_9510.jpeg',
-                    height: 70, 
-                    fit: BoxFit.contain,
-                  ),
-                ),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(2),
+                child: Image.asset('assets/images/logo_2.jpg', height: 35, width: 35, fit: BoxFit.cover),
               ),
             ),
-          ),
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white70),
-              onPressed: widget.onLogout,
+            const SizedBox(width: 12),
+            const Text(
+              'EL ASSIMA', 
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w900, 
+                letterSpacing: 2,
+                fontSize: 18,
+                color: Colors.white,
+              )
             ),
           ],
         ),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white70),
+            onPressed: widget.onLogout,
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(

@@ -106,7 +106,7 @@ class _ScannerPlatformImplementationState extends State<ScannerPlatformImplement
                 padding: const EdgeInsets.all(24),
                 color: Colors.black54,
                 child: const Text(
-                  "SCANNER WEB USMA\n(OCR limité sur Web - Utilisez la recherche)",
+                  "(OCR limité sur Web - Utilisez la recherche)",
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
