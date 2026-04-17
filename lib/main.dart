@@ -132,7 +132,8 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Image.asset('assets/images/logo.webp', height: 60, fit: BoxFit.contain),
+        toolbarHeight: 70,
+        title: Image.asset('assets/images/IMG_9510.jpeg', height: 60, fit: BoxFit.contain),
         elevation: 0,
         actions: [
           IconButton(
