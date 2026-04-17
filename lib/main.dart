@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'firebase_options.dart';
 import 'scanner_screen.dart';
 import 'members_list_screen.dart';
@@ -12,16 +13,14 @@ import 'login_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    // Initialisation Firebase avec options
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // Lancement du seeding en arrière-plan (non bloquant)
     DataManager.seedInitialMembers().catchError((e) => print(e));
   } catch (e) {
     print("Erreur Firebase: $e");
   }
-  runApp(const ClubApp()); // Votre application continue de tourner même si Firebase a un souci
+  runApp(const ClubApp());
 }
 
 class ClubApp extends StatefulWidget {
@@ -37,11 +36,11 @@ class _ClubAppState extends State<ClubApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ASSIMA-10',
+      title: 'EL ASSIMA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: const ColorScheme.light(
-          primary: Color(0xFFD32F2F), // Rouge USMA
+          primary: Color(0xFFD32F2F),
           onPrimary: Colors.white,
           secondary: Colors.black,
           surface: Colors.white,
@@ -54,14 +53,10 @@ class _ClubAppState extends State<ClubApp> {
           foregroundColor: Colors.white,
           elevation: 0,
         ),
-        navigationBarTheme: const NavigationBarThemeData(
-          backgroundColor: Colors.white,
-          indicatorColor: Color(0x33D32F2F), // Translucent red
-        ),
       ),
       darkTheme: ThemeData(
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFD32F2F), // Rouge USMA
+          primary: Color(0xFFD32F2F),
           onPrimary: Colors.white,
           secondary: Colors.grey,
           surface: Color(0xFF121212),
@@ -73,10 +68,6 @@ class _ClubAppState extends State<ClubApp> {
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
           elevation: 0,
-        ),
-        navigationBarTheme: const NavigationBarThemeData(
-          backgroundColor: Colors.black,
-          indicatorColor: Color(0x33D32F2F),
         ),
       ),
       themeMode: ThemeMode.system,
@@ -97,16 +88,17 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const ScannerScreen(),
-    const MembersListScreen(),
-    const OrderScreen(),
-    const AdminOrdersScreen(), // New Admin Tab
-    const HistoryScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    // Hide scanner on Web since it doesn't work well
+    final List<Widget> pages = [
+      if (!kIsWeb) const ScannerScreen(),
+      const MembersListScreen(),
+      const OrderScreen(),
+      const AdminOrdersScreen(),
+      const HistoryScreen(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -119,13 +111,14 @@ class _MainScreenState extends State<MainScreen> {
                 child: Image.asset('assets/images/logo_2.jpg', height: 31, width: 31, fit: BoxFit.cover),
               ),
             ),
+            const SizedBox(width: 12),
             const Text(
               'EL ASSIMA', 
               style: TextStyle(
                 fontStyle: FontStyle.italic,
                 fontWeight: FontWeight.w900, 
-                letterSpacing: 3.5,
-                fontSize: 20,
+                letterSpacing: 2,
+                fontSize: 18,
               )
             ),
           ],
@@ -137,10 +130,10 @@ class _MainScreenState extends State<MainScreen> {
           image: DecorationImage(
             image: AssetImage("assets/images/arriere_plan.jpg"),
             fit: BoxFit.cover,
-            opacity: 0.25, // Translucent enough for readability
+            opacity: 0.15,
           ),
         ),
-        child: _pages[_currentIndex],
+        child: pages[_currentIndex],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -149,30 +142,32 @@ class _MainScreenState extends State<MainScreen> {
             _currentIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.qr_code_scanner),
-            selectedIcon: Icon(Icons.camera_alt),
-            label: 'Scanner',
-          ),
-          NavigationDestination(
+        indicatorColor: Colors.red.withOpacity(0.2),
+        destinations: [
+          if (!kIsWeb)
+            const NavigationDestination(
+              icon: Icon(Icons.qr_code_scanner),
+              selectedIcon: Icon(Icons.camera_alt, color: Colors.red),
+              label: 'Scanner',
+            ),
+          const NavigationDestination(
             icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
+            selectedIcon: Icon(Icons.people, color: Colors.red),
             label: 'ZONES',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
+            selectedIcon: Icon(Icons.shopping_bag, color: Colors.red),
             label: 'BOUTIQUE',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.shopping_cart_checkout_outlined),
-            selectedIcon: Icon(Icons.shopping_cart_checkout),
+            selectedIcon: Icon(Icons.shopping_cart_checkout, color: Colors.red),
             label: 'COMMANDE', 
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
+            selectedIcon: Icon(Icons.history, color: Colors.red),
             label: 'Historique',
           ),
         ],

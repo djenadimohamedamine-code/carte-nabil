@@ -1,13 +1,25 @@
 #!/bin/bash
-echo "Téléchargement de Flutter..."
-git clone https://github.com/flutter/flutter.git -b stable
+
+# Configuration for Flutter on Vercel
+echo "🚀 Starting Flutter Web Build..."
+
+# Step 1: Clone Flutter (using a shallower clone to save time/space)
+if [ ! -d "flutter" ]; then
+    echo "📦 Cloning Flutter SDK..."
+    git clone --depth 1 https://github.com/flutter/flutter.git -b stable
+fi
+
 export PATH="$PATH:`pwd`/flutter/bin"
 
-echo "Configuration de Flutter..."
+# Step 2: Configure and Build
+echo "⚙️ Configuring Flutter..."
 flutter config --enable-web
+
+echo "📥 Getting dependencies..."
 flutter pub get
 
-echo "Construction de l'application Web..."
+echo "🏗️ Building Web App..."
+# Force build web even if folder was missing (redundant now but safe)
 flutter build web --release
 
-echo "Build terminé !"
+echo "✅ Build Complete! Output is in build/web"

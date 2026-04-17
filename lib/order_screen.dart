@@ -21,12 +21,16 @@ class _OrderScreenState extends State<OrderScreen> {
     final memberId = _memberIdController.text.trim().toUpperCase();
     
     if (memberId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Veuillez saisir votre ID membre.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez saisir votre ID membre.")),
+      );
       return;
     }
 
     if (_selectedProduct == 'Maillot' && _selectedSize == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Veuillez choisir une taille pour le maillot.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez choisir une taille pour le maillot.")),
+      );
       return;
     }
 
@@ -39,7 +43,6 @@ class _OrderScreenState extends State<OrderScreen> {
       }
 
       if (_selectedProduct == 'Maillot') {
-        // Check if already ordered jersey
         final existingJersey = await FirebaseFirestore.instance
             .collection('orders')
             .where('memberId', isEqualTo: memberId)
@@ -51,7 +54,6 @@ class _OrderScreenState extends State<OrderScreen> {
         }
       }
 
-      // Save order with a unique ID for keychains to allow multiple
       final orderId = _selectedProduct == 'Maillot' 
           ? memberId 
           : "${memberId}_KEY_${DateTime.now().millisecondsSinceEpoch}";
@@ -69,18 +71,7 @@ class _OrderScreenState extends State<OrderScreen> {
       });
 
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Icon(Icons.check_circle, color: Colors.green, size: 60),
-            content: Text(
-              "Commande validée !\nVotre ${_selectedProduct} est réservé.",
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("SUPER"))],
-          ),
-        );
+        _showSuccessDialog();
         _memberIdController.clear();
         setState(() {
           _selectedSize = null;
@@ -89,134 +80,295 @@ class _OrderScreenState extends State<OrderScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade800),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("BOUTIQUE OFFICIELLE", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.red)),
-          const Text("Sélectionnez vos articles EL ASSIMA", style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 24),
-          
-          // Product Switcher
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedProduct = 'Maillot'),
-                  child: _buildProductCard('Maillot', '5000 DA', 'arriere_plan.jpg', _selectedProduct == 'Maillot'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedProduct = 'Porte-clé'),
-                  child: _buildProductCard('Porte-clé', '500 DA', 'porte clé new.jpg', _selectedProduct == 'Porte-clé'),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 30),
-          
-          const Text("VOTRE COMMANDE", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          
-          TextField(
-            controller: _memberIdController,
-            decoration: InputDecoration(
-              labelText: "Identifiant Membre (ID)",
-              prefixIcon: const Icon(Icons.person),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
-              fillColor: Colors.white70,
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          if (_selectedProduct == 'Maillot') ...[
-            const Text("Choisir votre taille :", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _sizes.map((size) {
-                  final bool isSelected = _selectedSize == size;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(size),
-                      selected: isSelected,
-                      onSelected: (selected) => setState(() => _selectedSize = selected ? size : null),
-                      selectedColor: Colors.red,
-                      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ] else ...[
-            const Text("Quantité :", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                IconButton(onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null, icon: const Icon(Icons.remove_circle_outline)),
-                Text(_quantity.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                IconButton(onPressed: _quantity < 10 ? () => setState(() => _quantity++) : null, icon: const Icon(Icons.add_circle_outline)),
-              ],
-            ),
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Column(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+            SizedBox(height: 16),
+            Text("COMMANDE RÉUSSIE", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
           ],
-          
-          const SizedBox(height: 40),
-          
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitOrder,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-              child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text("VALIDER LA COMMANDE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ),
+        content: Text(
+          "Votre ${_selectedProduct == 'Maillot' ? 'Maillot' : 'Porte-clé'} a été réservé avec succès.\nRendez-vous au point de retrait.",
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
             ),
-          ),
-          const SizedBox(height: 40),
+            child: const Text("TERMINER", style: TextStyle(color: Colors.white)),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildProductCard(String name, String price, String imageName, bool isSelected) {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Colors.red, Color(0xFF8B0000)],
+            ).createShader(bounds),
+            child: const Text(
+              "BOUTIQUE PREMIUM",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
+            ),
+          ),
+          Text(
+            "ÉQUIPEZ-VOUS AUX COULEURS D'EL ASSIMA",
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600, letterSpacing: 1.2),
+          ),
+          const SizedBox(height: 32),
+          
+          // Product Cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildEnhancedProductCard(
+                  'Maillot Officiel', 
+                  '5000 DA', 
+                  'assets/images/arriere_plan.jpg', 
+                  _selectedProduct == 'Maillot',
+                  () => setState(() => _selectedProduct = 'Maillot'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildEnhancedProductCard(
+                  'Porte-clé', 
+                  '500 DA', 
+                  'assets/images/porte clé new.jpg', 
+                  _selectedProduct == 'Porte-clé',
+                  () => setState(() => _selectedProduct = 'Porte-clé'),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 40),
+          
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.shopping_bag_outlined, size: 20, color: Colors.blueGrey),
+                    SizedBox(width: 8),
+                    Text("DÉTAILS DE LA COMMANDE", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.blueGrey)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                TextField(
+                  controller: _memberIdController,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    labelText: "Identifiant Membre",
+                    hintText: "Ex (Laroui Laroui Souheib): Laroui Souheib",
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                if (_selectedProduct == 'Maillot') ...[
+                  const Text("TAILLE DISPONIBLE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: _sizes.map((size) {
+                      final bool isSelected = _selectedSize == size;
+                      return ChoiceChip(
+                        label: Text(size),
+                        selected: isSelected,
+                        onSelected: (selected) => setState(() => _selectedSize = selected ? size : null),
+                        selectedColor: Colors.red.shade700,
+                        backgroundColor: Colors.white,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87, 
+                          fontWeight: FontWeight.w800
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: isSelected ? 4 : 0,
+                      );
+                    }).toList(),
+                  ),
+                ] else ...[
+                  const Text("QUANTITÉ (MAX 10)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _qtyBtn(Icons.remove, _quantity > 1 ? () => setState(() => _quantity--) : null),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(_quantity.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                      ),
+                      _qtyBtn(Icons.add, _quantity < 10 ? () => setState(() => _quantity++) : null),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 40),
+          
+          Container(
+            width: double.infinity,
+            height: 65,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                )
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _submitOrder,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
+              ),
+              child: _isSubmitting 
+                ? const CircularProgressIndicator(color: Colors.white) 
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.flash_on, size: 20, color: Colors.amber),
+                      const SizedBox(width: 8),
+                      Text(
+                        "RÉSERVER MAINTENANT", 
+                        style: TextStyle(
+                          fontSize: 16, 
+                          fontWeight: FontWeight.w900, 
+                          letterSpacing: 1.2,
+                          color: Colors.white.withOpacity(0.95)
+                        )
+                      ),
+                    ],
+                  ),
+            ),
+          ),
+          const SizedBox(height: 60),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedProductCard(String title, String price, String img, bool isSelected, VoidCallback onTap) {
+    return AnimatedScale(
+      scale: isSelected ? 1.05 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isSelected ? Colors.red.shade700 : Colors.grey.shade100,
+              width: 3,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isSelected ? Colors.red.withOpacity(0.15) : Colors.black.withOpacity(0.03),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(img, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.shopping_bag_outlined, size: 50, color: Colors.grey))),
+                      if (isSelected) 
+                        Positioned(
+                          top: 12, right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                            child: const Icon(Icons.check, color: Colors.white, size: 16),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(price, style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w900, fontSize: 16)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _qtyBtn(IconData icon, VoidCallback? onPressed) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? Colors.red : Colors.transparent, width: 3),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: (imageName == 'maillot.png' || imageName == '') 
-                ? const Icon(Icons.checkroom, size: 60, color: Colors.grey)
-                : Image.asset('assets/images/$imageName', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag, size: 40)),
-            ),
-          ),
-          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          Text(price, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
-          const SizedBox(height: 8),
-        ],
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, color: onPressed == null ? Colors.grey : Colors.black),
       ),
     );
   }

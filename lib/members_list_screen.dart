@@ -9,25 +9,20 @@ class MembersListScreen extends StatefulWidget {
 }
 
 class _MembersListScreenState extends State<MembersListScreen> {
-  int _selectedZone = 1; // Default back to Zone 1
-
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  int _selectedZone = 1;
 
   Future<void> _resetAttendance() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Réinitialiser ?"),
-        content: const Text("Voulez-vous marquer tous les membres comme ABSENTS pour une nouvelle session ?"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Réinitialiser ?", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.red)),
+        content: const Text("Voulez-vous marquer tous les membres comme ABSENTS pour cette session ?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("ANNULER")),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("ANNULER", style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("OUI, RÉINITIALISER", style: TextStyle(color: Colors.red)),
+            child: const Text("OUI, RÉINITIALISER", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -42,55 +37,69 @@ class _MembersListScreenState extends State<MembersListScreen> {
       await batch.commit();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Liste réinitialisée avec succès !")),
+          const SnackBar(content: Text("Liste réinitialisée avec succès !"), backgroundColor: Colors.green),
         );
       }
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Header
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          color: Colors.red.shade900,
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10)],
+          ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "LISTE DES MEMBRES",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "GESTION DES ZONES",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5),
+                    ),
+                    Text(
+                      "Suivi des entrées en temps réel",
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                tooltip: "Réinitialiser la liste",
-                onPressed: _resetAttendance,
-              ),
-              DropdownButton<int>(
-                value: _selectedZone,
-                dropdownColor: Colors.black,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                underline: Container(height: 2, color: Colors.white),
-                items: List.generate(14, (index) => index + 1).map((int value) {
-                  return DropdownMenuItem<int>(
-                    value: value,
-                    child: Text("ZONE $value"),
-                  );
-                }).toList(),
-                onChanged: (int? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedZone = newValue;
-                    });
-                  }
-                },
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _selectedZone,
+                    dropdownColor: Colors.black,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                    items: List.generate(14, (index) => index + 1).map((int value) {
+                      return DropdownMenuItem<int>(
+                        value: value,
+                        child: Text("ZONE $value"),
+                      );
+                    }).toList(),
+                    onChanged: (int? newValue) {
+                      if (newValue != null) setState(() => _selectedZone = newValue);
+                    },
+                  ),
+                ),
               ),
             ],
           ),
         ),
+
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -98,102 +107,112 @@ class _MembersListScreenState extends State<MembersListScreen> {
                 .where('zone', isEqualTo: _selectedZone)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Center(child: Text("Erreur de chargement des données."));
-              }
-
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+              if (snapshot.hasError) return const Center(child: Text("Erreur de données."));
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.red));
 
               final members = snapshot.data!.docs;
               final totalMembers = members.length;
               final presentCount = members.where((doc) => (doc.data() as Map<String, dynamic>)['is_present'] == true).length;
               final absentCount = totalMembers - presentCount;
 
-              if (members.isEmpty) {
-                return const Center(
-                  child: Text(
-                    "Aucun membre dans la base de données.",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                );
-              }
-
               return Column(
                 children: [
-                  // Stats Dashboard
+                  // Dashboard Stats Card
                   Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.black12),
+                      gradient: LinearGradient(
+                        colors: [Colors.grey.shade100, Colors.white],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)],
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildStatItem(context, "MEMBRES", totalMembers.toString(), Colors.blue),
-                        _buildStatItem(context, "ENTRÉS", presentCount.toString(), Colors.green),
-                        _buildStatItem(context, "RESTANT", absentCount.toString(), Colors.redAccent),
+                        _buildStatCard("MEMBRES", totalMembers.toString(), Icons.people_outline, Colors.blue),
+                        _buildStatCard("EN SALLE", presentCount.toString(), Icons.login_outlined, Colors.green),
+                        _buildStatCard("ABSENTS", absentCount.toString(), Icons.logout_outlined, Colors.red),
                       ],
                     ),
                   ),
+
+                  // List Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "MEMBRES DE LA ZONE ($_selectedZone)",
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey),
+                        ),
+                        TextButton.icon(
+                          onPressed: _resetAttendance,
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: const Text("REINIT.", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   Expanded(
                     child: ListView.builder(
+                      physics: const BouncingScrollPhysics(),
                       itemCount: members.length,
                       itemBuilder: (context, index) {
                         final member = members[index].data() as Map<String, dynamic>;
-                        final String name = member['name'] ?? 'Inconnu';
-                        final String cardId = member['cardId'] ?? 'Pas d\'ID';
                         final bool isPresent = member['is_present'] ?? false;
 
-                        return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          elevation: isPresent ? 4 : 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: isPresent ? Colors.green.withOpacity(0.5) : Colors.transparent,
-                              width: 2,
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isPresent ? Colors.green.withOpacity(0.03) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isPresent ? Colors.green.withOpacity(0.3) : Colors.grey.shade100,
+                              width: 1.5,
                             ),
                           ),
                           child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: isPresent ? Colors.green : Colors.grey[300],
-                              child: Icon(
-                                isPresent ? Icons.check : Icons.person_outline,
-                                color: isPresent ? Colors.white : Colors.black38,
-                              ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            leading: Stack(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: isPresent ? Colors.green.withOpacity(0.2) : Colors.grey.shade100,
+                                  child: Icon(
+                                    isPresent ? Icons.person : Icons.person_outline,
+                                    color: isPresent ? Colors.green : Colors.grey,
+                                  ),
+                                ),
+                                if (isPresent)
+                                  const Positioned(
+                                    right: 0, bottom: 0,
+                                    child: CircleAvatar(radius: 6, backgroundColor: Colors.white, child: CircleAvatar(radius: 4, backgroundColor: Colors.green)),
+                                  ),
+                              ],
                             ),
                             title: Text(
-                              name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isPresent 
-                                    ? Theme.of(context).colorScheme.primary 
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
+                              member['name'] ?? 'Inconnu',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: isPresent ? Colors.green.shade800 : Colors.black),
                             ),
-                            subtitle: Text(
-                              "ID: $cardId",
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
+                            subtitle: Text("ID: ${member['cardId'] ?? 'N/A'}", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                             trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isPresent ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
+                                color: isPresent ? Colors.green : Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 isPresent ? "PRÉSENT" : "ABSENT",
                                 style: TextStyle(
-                                  color: isPresent ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.bold,
+                                  color: isPresent ? Colors.white : Colors.red.shade800,
+                                  fontWeight: FontWeight.w900,
                                   fontSize: 10,
                                 ),
                               ),
@@ -212,21 +231,17 @@ class _MembersListScreenState extends State<MembersListScreen> {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String label, String value, Color color) {
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 20),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10, 
-            fontWeight: FontWeight.bold, 
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-          ),
-        ),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
       ],
     );
   }

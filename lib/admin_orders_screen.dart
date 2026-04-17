@@ -8,13 +8,14 @@ class AdminOrdersScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Vider les commandes ?"),
-        content: const Text("Toutes les commandes de maillots seront supprimées définitivement."),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Vider les commandes ?", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.red)),
+        content: const Text("Toutes les commandes seront supprimées définitivement."),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("ANNULER")),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("ANNULER", style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("OUI, TOUT VIDER", style: TextStyle(color: Colors.red)),
+            child: const Text("OUI, TOUT SUPPRIMER", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -27,37 +28,48 @@ class AdminOrdersScreen extends StatelessWidget {
         batch.delete(doc.reference);
       }
       await batch.commit();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Commandes effacées."), backgroundColor: Colors.red));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4, // 4 tabs now
+      length: 4,
       child: Column(
         children: [
           Container(
-            color: Colors.red.shade900,
+            padding: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10)],
+            ),
             child: Row(
               children: [
                 const Expanded(
                   child: TabBar(
-                    indicatorColor: Colors.white,
+                    indicatorColor: Colors.red,
+                    indicatorWeight: 4,
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
-                    labelStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                    unselectedLabelColor: Colors.white38,
+                    labelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                     tabs: [
-                      Tab(icon: Icon(Icons.checkroom), text: "MAILLOTS"),
-                      Tab(icon: Icon(Icons.vpn_key), text: "P. CLÉ"),
-                      Tab(icon: Icon(Icons.pie_chart), text: "TAILLES"),
-                      Tab(icon: Icon(Icons.map), text: "ZONES"),
+                      Tab(icon: Icon(Icons.checkroom_outlined, size: 20), text: "MAILLOTS"),
+                      Tab(icon: Icon(Icons.vpn_key_outlined, size: 20), text: "P. CLÉ"),
+                      Tab(icon: Icon(Icons.analytics_outlined, size: 20), text: "TAILLES"),
+                      Tab(icon: Icon(Icons.grid_view_outlined, size: 20), text: "ZONES"),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_forever, color: Colors.white),
-                  tooltip: "Vider les commandes",
-                  onPressed: () => _clearOrders(context),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_sweep_outlined, color: Colors.red, size: 22),
+                    tooltip: "Vider les commandes",
+                    onPressed: () => _clearOrders(context),
+                  ),
                 ),
               ],
             ),
@@ -66,19 +78,19 @@ class AdminOrdersScreen extends StatelessWidget {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('orders').orderBy('timestamp', descending: true).snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) return const Center(child: Text("Erreur."));
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) return const Center(child: Text("Erreur de synchronisation."));
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.red));
 
                 final allOrders = snapshot.data!.docs;
 
                 if (allOrders.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.shopping_basket_outlined, size: 80, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text("Aucune commande pour le moment.", style: TextStyle(color: Colors.grey)),
+                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        Text("AUCUNE COMMANDE ACTIVE", style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w900, letterSpacing: 1)),
                       ],
                     ),
                   );
@@ -88,9 +100,10 @@ class AdminOrdersScreen extends StatelessWidget {
                 final keychainOrders = allOrders.where((d) => (d.data() as Map)['product']?.toString().contains('Porte-clé') ?? false).toList();
 
                 return TabBarView(
+                  physics: const BouncingScrollPhysics(),
                   children: [
-                    _buildOrdersList(jerseyOrders),
-                    _buildKeychainOrders(keychainOrders),
+                    _buildOrdersList(context, jerseyOrders, "MAILLOTS", Colors.red),
+                    _buildKeychainOrders(context, keychainOrders),
                     _buildStatsBySize(jerseyOrders),
                     _buildStatsByZone(allOrders),
                   ],
@@ -103,9 +116,8 @@ class AdminOrdersScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildKeychainOrders(List<QueryDocumentSnapshot> orders) {
+  Widget _buildKeychainOrders(BuildContext context, List<QueryDocumentSnapshot> orders) {
     int totalPcs = 0;
-    // Group by member to sum quantities
     Map<String, Map<String, dynamic>> memberStats = {};
     for (var doc in orders) {
       final data = doc.data() as Map<String, dynamic>;
@@ -128,34 +140,22 @@ class AdminOrdersScreen extends StatelessWidget {
 
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: Colors.amber.shade100,
-          child: Text(
-            "TOTAL PORTE-CLÉS : $totalPcs PIÈCES",
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black),
-          ),
-        ),
+        _buildSummaryHeader("TOTAL PORTE-CLÉS", "$totalPcs PCS", Colors.amber.shade800),
         Expanded(
           child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
             itemCount: members.length,
             itemBuilder: (context, index) {
               final m = members[index];
               final mId = memberStats.keys.elementAt(index);
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: Colors.amber, child: Icon(Icons.vpn_key, color: Colors.black, size: 16)),
-                  title: Text(m['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("ID: $mId • Zone ${m['zone']}"),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(15)),
-                    child: Text("${m['qty']} PCS", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-                  ),
-                ),
+              return _buildBaseOrderCard(
+                context,
+                m['name'],
+                "ID: $mId • Zone ${m['zone']}",
+                "${m['qty']} PCS",
+                Icons.vpn_key_outlined,
+                Colors.amber.shade800,
+                () {}, // No delete for grouped view simple
               );
             },
           ),
@@ -164,72 +164,108 @@ class AdminOrdersScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrdersList(List<QueryDocumentSnapshot> orders) {
+  Widget _buildOrdersList(BuildContext context, List<QueryDocumentSnapshot> orders, String title, Color themeColor) {
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: Colors.red.shade50,
-          child: Text(
-            "TOTAL MAILLOTS : ${orders.length}",
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.red),
-          ),
-        ),
+        _buildSummaryHeader("TOTAL $title", "${orders.length} UNITÉS", themeColor),
         Expanded(
           child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
             itemCount: orders.length,
             itemBuilder: (context, index) {
-        final doc = orders[index];
-        final data = doc.data() as Map<String, dynamic>;
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          elevation: 2,
-          child: ListTile(
-            leading: const CircleAvatar(backgroundColor: Colors.black, child: Icon(Icons.person, color: Colors.white)),
-            title: Text(data['memberName'] ?? 'Inconnu', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("ID: ${data['memberId']} • Zone ${data['zone']}"),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
-                  child: Text(
-                    data['size'] ?? '?',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Annuler cette commande ?"),
-                        content: Text("Voulez-vous supprimer la commande de ${data['memberName']} ?"),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("NON")),
-                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("OUI", style: TextStyle(color: Colors.red))),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      await FirebaseFirestore.instance.collection('orders').doc(doc.id).delete();
-                    }
-                  },
-                ),
-              ],
-            ),
+              final doc = orders[index];
+              final data = doc.data() as Map<String, dynamic>;
+              return _buildBaseOrderCard(
+                context,
+                data['memberName'] ?? 'Inconnu',
+                "ID: ${data['memberId']} • Zone ${data['zone']}",
+                data['size'] ?? 'N/A',
+                Icons.checkroom_outlined,
+                themeColor,
+                () async {
+                  final confirm = await _showConfirmDelete(context, data['memberName']);
+                  if (confirm == true) await FirebaseFirestore.instance.collection('orders').doc(doc.id).delete();
+                },
+              );
+            },
           ),
-        );
-      },
-            ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryHeader(String label, String value, Color color) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        border: Border(bottom: BorderSide(color: color.withOpacity(0.1))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 13, letterSpacing: 1)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.black, fontSize: 14)),
           ),
         ],
-      );
-    }
+      ),
+    );
+  }
+
+  Widget _buildBaseOrderCard(BuildContext context, String title, String subtitle, String trailing, IconData icon, Color color, VoidCallback onDelete) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+        subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
+              child: Text(trailing, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+            ),
+            if (onDelete != null) 
+              IconButton(
+                icon: Icon(Icons.close_rounded, color: Colors.red.shade300, size: 20),
+                onPressed: onDelete,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _showConfirmDelete(BuildContext context, String? name) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Annuler commande"),
+        content: Text("Confirmez-vous la suppression de la commande de $name ?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("IGNORER")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("ANNULER LA COMMANDE", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+  }
 
   Widget _buildStatsBySize(List<QueryDocumentSnapshot> orders) {
     Map<String, int> stats = {};
@@ -237,25 +273,31 @@ class AdminOrdersScreen extends StatelessWidget {
       final size = (doc.data() as Map<String, dynamic>)['size'] ?? 'Unknown';
       stats[size] = (stats[size] ?? 0) + 1;
     }
-
     final sortedSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Text("TOTAL GÉNÉRAL PAR TAILLE", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-        ),
+        const Text("RÉPARTITION PAR TAILLE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1)),
+        const SizedBox(height: 20),
         ...sortedSizes.map((size) {
           final count = stats[size] ?? 0;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.black12)),
-            child: ListTile(
-              title: Text("Taille $size", style: const TextStyle(fontWeight: FontWeight.bold)),
-              trailing: Text("$count", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.red)),
-            ),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    CircleAvatar(backgroundColor: Colors.black, radius: 18, child: Text(size, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                    const SizedBox(width: 16),
+                    const Text("Maillots", style: TextStyle(fontWeight: FontWeight.w500)),
+                    const Spacer(),
+                    Text("$count", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+            ],
           );
         }),
       ],
@@ -263,9 +305,7 @@ class AdminOrdersScreen extends StatelessWidget {
   }
 
   Widget _buildStatsByZone(List<QueryDocumentSnapshot> orders) {
-    // Map<Zone, Map<ProductType, Count>>
     Map<int, Map<String, int>> zoneProductStats = {};
-    // Map<Zone, Map<Size, Count>> for Jerseys
     Map<int, Map<String, int>> zoneSizeStats = {};
     
     for (var doc in orders) {
@@ -276,7 +316,6 @@ class AdminOrdersScreen extends StatelessWidget {
       zoneProductStats.putIfAbsent(zone, () => {'Maillots': 0, 'Porte-clés': 0});
       if (product.contains('Maillot')) {
         zoneProductStats[zone]!['Maillots'] = (zoneProductStats[zone]!['Maillots'] ?? 0) + 1;
-        
         final size = data['size'] ?? 'Unknown';
         zoneSizeStats.putIfAbsent(zone, () => {});
         zoneSizeStats[zone]![size] = (zoneSizeStats[zone]![size] ?? 0) + 1;
@@ -287,75 +326,52 @@ class AdminOrdersScreen extends StatelessWidget {
     }
 
     final sortedZones = zoneProductStats.keys.toList()..sort();
-    final sortedSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       itemCount: sortedZones.length,
       itemBuilder: (context, index) {
         final zone = sortedZones[index];
         final products = zoneProductStats[zone]!;
-        final sizes = zoneSizeStats[zone] ?? {};
-
-        return Card(
+        return Container(
           margin: const EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("ZONE $zone", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue.shade900)),
-                    const Icon(Icons.location_on, color: Colors.red),
-                  ],
-                ),
-                const Divider(),
-                Row(
-                  children: [
-                    _buildMiniStat("MAILLOTS", products['Maillots'] ?? 0, Colors.red),
-                    const SizedBox(width: 20),
-                    _buildMiniStat("P. CLÉS", products['Porte-clés'] ?? 0, Colors.amber.shade700),
-                  ],
-                ),
-                if (products['Maillots']! > 0) ...[
-                  const SizedBox(height: 16),
-                  const Text("DÉTAIL TAILLES :", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: sortedSizes.map((size) {
-                      final count = sizes[size] ?? 0;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: count > 0 ? Colors.black : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          "$size: $count",
-                          style: TextStyle(color: count > 0 ? Colors.white : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("ZONE $zone", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const Icon(Icons.analytics_rounded, color: Colors.blueGrey, size: 20),
                 ],
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _miniStat("MAILLOTS", products['Maillots']!, Colors.red),
+                  const SizedBox(width: 32),
+                  _miniStat("P. CLÉS", products['Porte-clés']!, Colors.amber.shade700),
+                ],
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildMiniStat(String label, int value, Color color) {
+  Widget _miniStat(String label, int val, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
-        Text("$value", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+        Text("$val", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
       ],
     );
   }
