@@ -1,46 +1,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="/carte-nabil/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="EL ASSIMA Membership Scanner & Ordering System">
 
   <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="carte_nabil">
+  <meta name="apple-mobile-web-app-title" content="EL ASSIMA">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>ASSIMA-10</title>
+  <title>EL ASSIMA | Scanner</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #0a0a0a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: white;
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    .loader-container {
+      text-align: center;
+      animation: fadeIn 1s ease-out;
+    }
+
+    .logo-container {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .logo-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(220, 38, 38, 0.4) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top: 3px solid #dc2626;
+      border-radius: 50%;
+      margin: 0 auto;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      margin-top: 2rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .progress-bar {
+      width: 200px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 1rem auto;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: #dc2626;
+      box-shadow: 0 0 10px #dc2626;
+      transition: width 0.3s ease;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div class="loader-container">
+    <div class="logo-container" style="margin: 0 auto;">
+      <div class="logo-glow"></div>
+      <svg width="120" height="120" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#dc2626" stroke-width="2" />
+        <path d="M30 70 L50 30 L70 70" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M40 50 L60 50" fill="none" stroke="#dc2626" stroke-width="3" />
+      </svg>
+    </div>
+    <div class="loading-text">Chargement EL ASSIMA</div>
+    <div class="progress-bar">
+      <div id="progress" class="progress-fill"></div>
+    </div>
+    <div class="spinner"></div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Simple progress simulation for the splash screen
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += (100 - progress) * 0.1;
+      document.getElementById('progress').style.width = progress + '%';
+      if (progress > 98) clearInterval(interval);
+    }, 200);
+  </script>
 </body>
 </html>
