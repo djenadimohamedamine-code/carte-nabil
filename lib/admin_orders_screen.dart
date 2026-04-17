@@ -162,7 +162,11 @@ class AdminOrdersScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.black, borderRadius: BorderRadius.circular(8)), child: Text(trailing, style: TextStyle(color: isDark ? Colors.red : Colors.white, fontWeight: FontWeight.w900, fontSize: 12))),
-            IconButton(icon: Icon(Icons.close_rounded, color: Colors.red.shade300, size: 20), onPressed: onDelete),
+            if (isAdmin)
+              IconButton(
+                icon: Icon(Icons.close_rounded, color: Colors.red.shade300, size: 20),
+                onPressed: onDelete,
+              ),
           ],
         ),
       ),

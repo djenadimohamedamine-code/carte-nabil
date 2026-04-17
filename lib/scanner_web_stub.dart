@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ScannerPlatformImplementation extends StatefulWidget {
   const ScannerPlatformImplementation({super.key});
@@ -10,140 +10,144 @@ class ScannerPlatformImplementation extends StatefulWidget {
 }
 
 class _ScannerPlatformImplementationState extends State<ScannerPlatformImplementation> {
-  String _scanResult = "Le scanner OCR automatique n'est pas disponible sur Web.\n\nVeuillez utiliser la recherche manuelle ci-dessous.";
-  bool _showSuccessOverlay = false;
-  bool _showErrorOverlay = false;
+  CameraController? _controller;
+  bool _isCameraInitialized = false;
+  final TextEditingController _searchController = TextEditingController();
 
-  Future<void> _showManualSearchDialog() async {
-    final TextEditingController searchController = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Recherche Manuelle"),
-        content: TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            labelText: "Matricule (Ex: AC010)",
-            border: OutlineInputBorder(),
-          ),
-          textCapitalization: TextCapitalization.characters,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("ANNULER")),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, searchController.text.trim()),
-            child: const Text("RECHERCHER"),
-          ),
-        ],
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
 
-    if (result != null && result.isNotEmpty) {
-      _verifyMember([result]);
+  Future<void> _initializeCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isNotEmpty) {
+        _controller = CameraController(cameras[0], ResolutionPreset.medium);
+        await _controller!.initialize();
+        if (mounted) setState(() => _isCameraInitialized = true);
+      }
+    } catch (e) {
+      print("Erreur caméra Web: $e");
     }
   }
 
-  Future<void> _verifyMember(List<String> candidates) async {
-    try {
-      DocumentSnapshot? foundDoc;
-      setState(() => _scanResult = "Vérification en cours...");
+  Future<void> _verifyMember(String matricule) async {
+    final query = await FirebaseFirestore.instance
+        .collection('members')
+        .where('matricule', isEqualTo: matricule.toUpperCase())
+        .get();
 
-      for (var rawId in candidates) {
-        final searchId = rawId.replaceAll(RegExp(r'[^A-Z0-9]'), '').toUpperCase();
-        if (searchId.isEmpty) continue;
-        var querySnapshot = await FirebaseFirestore.instance.collection('members').where('cardId', isEqualTo: searchId).get();
-        if (querySnapshot.docs.isNotEmpty) {
-          foundDoc = querySnapshot.docs.first;
-          break;
-        }
-        querySnapshot = await FirebaseFirestore.instance.collection('members').where('matricule', isEqualTo: searchId).get();
-        if (querySnapshot.docs.isNotEmpty) {
-          foundDoc = querySnapshot.docs.first;
-          break;
-        }
+    if (query.docs.isNotEmpty) {
+      final doc = query.docs.first;
+      final data = doc.data();
+      
+      await doc.reference.update({'is_present': true, 'last_scanned': FieldValue.serverTimestamp()});
+      await FirebaseFirestore.instance.collection('scans_history').add({
+        'name': data['name'],
+        'cardId': data['cardId'],
+        'zone': data['zone'],
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        _showResultDialog(data['name'], data['zone'], true);
+        _searchController.clear();
       }
-
-      if (foundDoc != null) {
-        final data = foundDoc.data() as Map<String, dynamic>;
-        final String foundName = data['name'] ?? 'Supporter';
-        final String foundZone = (data['zone'] ?? '?').toString();
-        final String foundMatricule = data['matricule'] ?? data['cardId'] ?? '?';
-        
-        if (data['is_present'] ?? false) {
-          setState(() {
-            _showErrorOverlay = true;
-            _scanResult = "⚠️ DÉJÀ ENTRÉ !\n\nNOM : $foundName\nZONE : $foundZone";
-          });
-          Future.delayed(const Duration(seconds: 4), () => setState(() => _showErrorOverlay = false));
-          return;
-        }
-
-        await foundDoc.reference.update({'is_present': true, 'last_scanned': FieldValue.serverTimestamp()});
-        await FirebaseFirestore.instance.collection('scans_history').add({
-          'name': foundName, 'cardId': foundMatricule, 'zone': foundZone, 'timestamp': FieldValue.serverTimestamp(),
-        });
-
-        setState(() {
-          _showSuccessOverlay = true;
-          _scanResult = "✅ ENTRÉ AUTORISÉE\n\n$foundName\nZONE : $foundZone";
-        });
-        Future.delayed(const Duration(seconds: 3), () => setState(() => _showSuccessOverlay = false));
-      } else {
-        setState(() {
-          _showErrorOverlay = true;
-          _scanResult = "❌ AUCUN MEMBRE TROUVÉ\n\nMatricule : ${candidates.first}";
-        });
-        Future.delayed(const Duration(seconds: 4), () => setState(() => _showErrorOverlay = false));
-      }
-    } catch (e) {
-      if (mounted) setState(() => _scanResult = "Erreur système : $e");
+    } else {
+      if (mounted) _showResultDialog("Inconnu", 0, false);
     }
+  }
+
+  void _showResultDialog(String name, int zone, bool success) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: success ? Colors.green.shade50 : Colors.red.shade50,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(success ? Icons.check_circle : Icons.error, color: success ? Colors.green : Colors.red, size: 60),
+            const SizedBox(height: 16),
+            Text(success ? "ACCÈS AUTORISÉ" : "ACCÈS REFUSÉ", style: TextStyle(fontWeight: FontWeight.w900, color: success ? Colors.green : Colors.red)),
+            Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            if (success) Text("Zone $zone", style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(40.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                   Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), shape: BoxShape.circle),
-                    child: const Icon(Icons.qr_code_scanner, size: 80, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    _scanResult,
-                    style: TextStyle(
-                      fontSize: 18, 
-                      fontWeight: FontWeight.bold, 
-                      color: _scanResult.contains("✅") ? Colors.green : (_scanResult.contains("❌") ? Colors.red : Colors.black)
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 40),
-                  ElevatedButton.icon(
-                    onPressed: _showManualSearchDialog,
-                    icon: const Icon(Icons.search),
-                    label: const Text("RECHERCHE MANUELLE", style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(250, 60),
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    ),
-                  ),
-                ],
+          // Camera Preview (même si OCR limité)
+          if (_isCameraInitialized && _controller != null)
+            Center(child: CameraPreview(_controller!))
+          else
+            const Center(child: Text("Caméra non disponible sur ce navigateur", style: TextStyle(color: Colors.white))),
+
+          // UI Overlay
+          Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                color: Colors.black54,
+                child: const Text(
+                  "SCANNER WEB USMA\n(OCR limité sur Web - Utilisez la recherche)",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "Entrer Matricule (ex: AC010)",
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.search, color: Colors.red),
+                        filled: true,
+                        fillColor: Colors.white10,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      ),
+                      onSubmitted: _verifyMember,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                        onPressed: () => _verifyMember(_searchController.text),
+                        child: const Text("VÉRIFIER L'ACCÈS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (_showSuccessOverlay) Positioned.fill(child: Container(color: Colors.green.withOpacity(0.6), child: const Center(child: Icon(Icons.check_circle, color: Colors.white, size: 100)))),
-          if (_showErrorOverlay) Positioned.fill(child: Container(color: Colors.red.withOpacity(0.6), child: const Center(child: Icon(Icons.cancel, color: Colors.white, size: 100)))),
         ],
       ),
     );
