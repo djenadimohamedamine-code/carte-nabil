@@ -124,7 +124,7 @@ class _ScannerPlatformImplementationState extends State<ScannerPlatformImplement
                       controller: _searchController,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: "Entrer Matricule (ex: AC010)",
+                        hintText: "Entrer Matricule",
                         hintStyle: const TextStyle(color: Colors.white38),
                         prefixIcon: const Icon(Icons.search, color: Colors.red),
                         filled: true,
