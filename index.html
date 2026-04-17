@@ -2,138 +2,88 @@
 <html>
 <head>
   <base href="/carte-nabil/">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="EL ASSIMA Membership Scanner & Ordering System">
+  <meta name="description" content="ASSIMA-10 Membership System">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="EL ASSIMA">
+  <meta name="apple-mobile-web-app-title" content="ASSIMA-10">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>EL ASSIMA | Scanner</title>
+  <title>ASSIMA-10</title>
   <link rel="manifest" href="manifest.json">
-
-  <style>
-    body {
-      background-color: #0a0a0a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      color: white;
-      font-family: 'Inter', -apple-system, sans-serif;
-      overflow: hidden;
-    }
-
-    .loader-container {
-      text-align: center;
-      animation: fadeIn 1s ease-out;
-    }
-
-    .logo-container {
-      width: 120px;
-      height: 120px;
-      margin-bottom: 2rem;
-      position: relative;
-    }
-
-    .logo-glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 140px;
-      height: 140px;
-      background: radial-gradient(circle, rgba(220, 38, 38, 0.4) 0%, transparent 70%);
-      border-radius: 50%;
-      animation: pulse 2s infinite ease-in-out;
-    }
-
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid rgba(255, 255, 255, 0.1);
-      border-top: 3px solid #dc2626;
-      border-radius: 50%;
-      margin: 0 auto;
-      animation: spin 1s linear infinite;
-    }
-
-    .loading-text {
-      margin-top: 2rem;
-      font-size: 1.2rem;
-      font-weight: 500;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      opacity: 0.8;
-    }
-
-    .progress-bar {
-      width: 200px;
-      height: 2px;
-      background: rgba(255, 255, 255, 0.1);
-      margin: 1rem auto;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      width: 0%;
-      height: 100%;
-      background: #dc2626;
-      box-shadow: 0 0 10px #dc2626;
-      transition: width 0.3s ease;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
-      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
 </head>
 <body>
-  <div class="loader-container">
-    <div class="logo-container" style="margin: 0 auto;">
-      <div class="logo-glow"></div>
-      <svg width="120" height="120" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#dc2626" stroke-width="2" />
-        <path d="M30 70 L50 30 L70 70" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M40 50 L60 50" fill="none" stroke="#dc2626" stroke-width="3" />
-      </svg>
-    </div>
-    <div class="loading-text">Chargement EL ASSIMA</div>
-    <div class="progress-bar">
-      <div id="progress" class="progress-fill"></div>
-    </div>
-    <div class="spinner"></div>
-  </div>
-
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- This script installs service_worker.js to provide PWA functionality to
+       application. For more information, see:
+       https://developers.google.com/web/fundamentals/primers/service-workers -->
   <script>
-    // Simple progress simulation for the splash screen
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += (100 - progress) * 0.1;
-      document.getElementById('progress').style.width = progress + '%';
-      if (progress > 98) clearInterval(interval);
-    }, 200);
+    const serviceWorkerVersion = "67009248" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */;
+    var scriptLoaded = false;
+    function loadMainDartJs() {
+      if (scriptLoaded) {
+        return;
+      }
+      scriptLoaded = true;
+      var scriptTag = document.createElement('script');
+      scriptTag.src = 'main.dart.js';
+      scriptTag.type = 'application/javascript';
+      document.body.append(scriptTag);
+    }
+
+    if ('serviceWorker' in navigator) {
+      // Service workers are supported. Use them.
+      window.addEventListener('load', function () {
+        // Wait for registration to finish before dropping the <script> tag.
+        // Otherwise, the browser will load the script multiple times,
+        // potentially different versions.
+        var serviceWorkerUrl = 'flutter_service_worker.js?v=' + serviceWorkerVersion;
+        navigator.serviceWorker.register(serviceWorkerUrl)
+          .then((reg) => {
+            function waitForActivation(serviceWorker) {
+              serviceWorker.addEventListener('statechange', () => {
+                if (serviceWorker.state == 'activated') {
+                  console.log('Installed new service worker.');
+                  loadMainDartJs();
+                }
+              });
+            }
+            if (!reg.active && (reg.installing || reg.waiting)) {
+              // No active web worker and we have installed or are installing
+              // one for the first time. Simply wait for it to activate.
+              waitForActivation(reg.installing || reg.waiting);
+            } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
+              // When the app updates the serviceWorkerVersion changes, so we
+              // need to ask the service worker to update.
+              console.log('New service worker available.');
+              reg.update();
+              waitForActivation(reg.installing);
+            } else {
+              // Existing service worker is still good.
+              console.log('Loading app from service worker.');
+              loadMainDartJs();
+            }
+          });
+
+        // If service worker not installed within 20s, fallback to simple script load.
+        setTimeout(() => {
+          if (!scriptLoaded) {
+            console.warn(
+              'Failed to load app from service worker. Falling back to plain <script> tag.',
+            );
+            loadMainDartJs();
+          }
+        }, 20000);
+      });
+    } else {
+      // Service workers not supported. Just load the main script.
+      loadMainDartJs();
+    }
   </script>
 </body>
 </html>
