@@ -104,38 +104,42 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const ScannerScreen(),
-      MembersListScreen(isAdmin: widget.isAdmin),
-      const OrderScreen(),
-      AdminOrdersScreen(isAdmin: widget.isAdmin),
-      HistoryScreen(isAdmin: widget.isAdmin),
-    ];
+    // Role-based pages and destinations
+    final List<Widget> pages = [];
+    final List<NavigationDestination> destinations = [];
+
+    if (widget.isAdmin) {
+      // Admin: Access to everything
+      pages.addAll([
+        const ScannerScreen(),
+        MembersListScreen(isAdmin: true),
+        const OrderScreen(),
+        const AdminOrdersScreen(isAdmin: true),
+        const HistoryScreen(isAdmin: true),
+      ]);
+      destinations.addAll([
+        const NavigationDestination(icon: Icon(Icons.qr_code_scanner), selectedIcon: Icon(Icons.camera_alt, color: Colors.red), label: 'Scanner'),
+        const NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people, color: Colors.red), label: 'ZONES'),
+        const NavigationDestination(icon: Icon(Icons.shopping_bag_outlined), selectedIcon: Icon(Icons.shopping_bag, color: Colors.red), label: 'BOUTIQUE'),
+        const NavigationDestination(icon: Icon(Icons.shopping_cart_checkout_outlined), selectedIcon: Icon(Icons.shopping_cart_checkout, color: Colors.red), label: 'COMMANDE'),
+        const NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history, color: Colors.red), label: 'Historique'),
+      ]);
+    } else {
+      // User 0101: Only Zones and Boutique
+      pages.addAll([
+        MembersListScreen(isAdmin: false),
+        const OrderScreen(),
+      ]);
+      destinations.addAll([
+        const NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people, color: Colors.red), label: 'ZONES'),
+        const NavigationDestination(icon: Icon(Icons.shopping_bag_outlined), selectedIcon: Icon(Icons.shopping_bag, color: Colors.red), label: 'BOUTIQUE'),
+      ]);
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8.0),
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(2),
-                child: Image.asset('assets/images/logo_2.jpg', height: 31, width: 31, fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'EL ASSIMA', 
-              style: TextStyle(
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w900, 
-                letterSpacing: 2,
-                fontSize: 18,
-              )
-            ),
-          ],
-        ),
+        centerTitle: true,
+        title: Image.asset('assets/images/logo_2.jpg', height: 45), // New Logo layout without text
         elevation: 0,
         actions: [
           IconButton(
@@ -162,33 +166,7 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
         indicatorColor: Colors.red.withOpacity(0.2),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.qr_code_scanner),
-            selectedIcon: Icon(Icons.camera_alt, color: Colors.red),
-            label: 'Scanner',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people, color: Colors.red),
-            label: 'ZONES',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag, color: Colors.red),
-            label: 'BOUTIQUE',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_cart_checkout_outlined),
-            selectedIcon: Icon(Icons.shopping_cart_checkout, color: Colors.red),
-            label: 'COMMANDE', 
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history, color: Colors.red),
-            label: 'Historique',
-          ),
-        ],
+        destinations: destinations,
       ),
     );
   }
